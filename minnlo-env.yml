@@ -1,0 +1,17 @@
+name: minnlo-env
+
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.12
+  - cxx-compiler 
+  - fortran-compiler 
+  - cmake 
+  - root
+  - lhapdf 
+  - yaml-cpp 
+  - pandas 
+  - h5py 
+  - tabulate
