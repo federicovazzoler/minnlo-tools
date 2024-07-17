@@ -1,20 +1,15 @@
 #!/bin/bash
 
-# Input argument
-if [ "$#" -ne 1 ]; then
-  echo "Usage: $0 <inputCard>"
-  exit 1
-fi
-inputCard=$1
+inputCard="${@}"
 
 if [ ! -f ${inputCard} ]; then
-  echo -e  "\033[0;31mInput card ${inputCard} doesn't exists\033[0m"
+  echo -e  "\033[0;31mNo input card given\033[0m"
   exit 1
 fi
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PARENT_DIR="$(dirname "$SCRIPT_DIR")"
-source "$PARENT_DIR/environment.sh"
+source "$PARENT_DIR/env.sh"
 
 # Create the output directory
 wrkFld="$(basename "$inputCard")"
