@@ -23,3 +23,20 @@ conda activate minnlo-env
 ```
 
 You are ready to go
+
+## For MAC users
+
+You need to install `svn` in ordre to be able to download POWHEG
+
+Step 1: install `homebrew`
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+Step 2: install `svn` and `wget`
+
+```bash
+brew install svn
+brew install wget
+```
