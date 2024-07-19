@@ -26,7 +26,7 @@ You are ready to go
 
 ## For MAC users
 
-You need to install `svn` in ordre to be able to download POWHEG
+You need to install `svn` in order to be able to download POWHEG
 
 Step 1: install `homebrew`
 
