@@ -27,13 +27,7 @@ def check_env():
         sys.stdout.write("Environment found.")
         return MINNLO_TOOLS_PATH, CONDA_PATH
 
-def write_single_stage_job(stage,
-                           seed,
-                           dagman_folder,
-                           gridpack_folder,
-                           runtime,
-                           MINNLO_TOOLS_PATH,
-                           CONDA_PATH):
+def write_single_stage_job(stage, seed, dagman_folder, gridpack_folder, runtime, MINNLO_TOOLS_PATH, CONDA_PATH):
     job_folder = os.path.join(dagman_folder, f"stage_{stage}", f"seed_{seed}")
     os.makedirs(job_folder, exist_ok=False)
 
@@ -57,7 +51,6 @@ conda activate minnlo-env
 # Generation step
 pushd {gridpack_folder}
 time {MINNLO_TOOLS_PATH}/POWHEG-BOX-V2/Zj/ZjMiNNLO/pwhg_main<<EOF
-stage_{stage}
 {seed}
 EOF
 
@@ -85,11 +78,48 @@ requirements    = Machine =!= LastRemoteHost
 
     return submit_path
 
-def prepare_powheg_card(input_card,
-                        initial_seed,
-                        num_jobs,
-                        stage,
-                        gridpack_folder):
+def write_prepare_job(stage, dagman_folder, gridpack_folder):
+    job_folder = create_folder(os.path.join(dagman_folder, f"stage_{stage}"))
+
+    script_path = os.path.join(job_folder, "copy.sh")
+    submit_path = os.path.join(job_folder, "job.sub") 
+    output_path = os.path.join(job_folder, "job.out")
+    error_path = os.path.join(job_folder, "job.err")
+    log_path = os.path.join(job_folder, "job.log")
+
+    # Script
+    script_file = f"""
+#!/bin/bash
+
+set -e
+
+pushd {gridpack_folder}
+cp -v stage_{stage}-powheg.input powheg.input
+cp -v stage_{stage}-seeds.dat pwgseeds.dat
+popd
+
+exit 0
+"""
+    with open(script_path, "w") as file:
+        file.write(script_file)
+    os.chmod(script_path, 0o755)
+
+    # Submit
+    submit_file = f"""
+exectutable     = {script_path}
+output          = {output_path}
+error           = {error_path}
+log             = {log_path}
+on_exit_remove  = (ExitBySignal == False) && (ExitCode == 0)\n
+max_retries     = 3
+requirements    = Machine =!= LastRemoteHost
+"""
+    with open(submit_path, "w") as file:
+        file.write(submit_file)
+
+    return submit_path
+
+def prepare_powheg_card(input_card, initial_seed, num_jobs, stage, gridpack_folder):
     with open(input_card, "r") as f:
         contents = f.read()
         contents = re.sub(r".*manyseeds.*", "manyseeds 1", contents)
@@ -119,6 +149,10 @@ def prepare_powheg_card(input_card,
         for i in range(initial_seed, initial_seed + num_jobs):
             f.write(f"{i}\n")
 
+def create_folder(folder_path, **kwargs):
+    os.makedirs(folder_path, exist_ok=kwargs.get('exist_ok', False))
+    return folder_path
+
 def generate_dagman_area(input_card, output_folder, num_evts, num_jobs, initial_seed, runtime, submit):
     MINNLO_TOOLS_PATH, CONDA_PATH = check_env()
 
@@ -126,10 +160,8 @@ def generate_dagman_area(input_card, output_folder, num_evts, num_jobs, initial_
     runtime *= 3600
    
     # Create the output_folder directory structure
-    gridpack_folder = os.path.join(output_folder, "gridpack")
-    os.makedirs(gridpack_folder, exist_ok=False)
-    dagman_folder = os.path.join(output_folder, "dagman")
-    os.makedirs(dagman_folder, exist_ok=False)
+    gridpack_folder = create_folder(os.path.join(output_folder, "gridpack"))
+    dagman_folder = create_folder(os.path.join(output_folder, "dagman"))
 
     dagman_file = os.path.join(dagman_folder, "dagman.dag")
 
@@ -138,26 +170,22 @@ def generate_dagman_area(input_card, output_folder, num_evts, num_jobs, initial_
 
         stages = [0, 1, 2, 3]
         for stage in stages:
-            # copy the card
-            prepare_powheg_card(
-                input_card=input_card,
-                initial_seed=initial_seed,
-                num_jobs=num_jobs,
-                stage=stage,
-                gridpack_folder=gridpack_folder
-            ) 
- 
+            prepare_powheg_card(input_card=input_card, initial_seed=initial_seed, num_jobs=num_jobs, stage=stage, gridpack_folder=gridpack_folder) 
+
+            job_prepare_path = write_prepare_job(stage=stage, dagman_folder=dagman_folder, gridpack_folder=gridpack_folder)
+
+            df.write(f"# Stage {stage}: PREPARE\n")
+            df.write(f"JOB prepare_stage_{stage} {job_prepare_path}\n\n")
+            
+            df.write(f"# Stage {stage}: JOBS\n")
             for seed in range(initial_seed, initial_seed + num_jobs):
-                job_submit_path = write_single_stage_job(
-                    stage=stage,
-                    seed=seed,
-                    dagman_folder=dagman_folder,
-                    gridpack_folder=gridpack_folder,
-                    runtime=runtime,
-                    MINNLO_TOOLS_PATH=MINNLO_TOOLS_PATH,
-                    CONDA_PATH=CONDA_PATH
-                )
+                job_submit_path = write_single_stage_job(stage=stage, seed=seed, dagman_folder=dagman_folder, gridpack_folder=gridpack_folder, runtime=runtime, MINNLO_TOOLS_PATH=MINNLO_TOOLS_PATH, CONDA_PATH=CONDA_PATH)
                 df.write(f"JOB stage_{stage}_seed_{seed} {job_submit_path}\n")                
+
+            child_string = ""
+            for seed in range(initial_seed, initial_seed + num_jobs):
+                child_string += f"stage_{stage}_seed_{seed} " 
+            df.write(f"PARENT prepare_stage_{stage} CHILD {child_string}\n\n")
 
         # Write the PARENT CHILD syntax
         df.write("\n")
