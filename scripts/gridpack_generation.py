@@ -43,8 +43,7 @@ def write_single_stage_job(stage, seed, dagman_folder, gridpack_folder, runtime,
 set -e
 
 # Activate the conda environment
-alias conda={CONDA_PATH}
-source "$(conda info --base)/etc/profile.d/conda.sh"
+source "$({CONDA_PATH} info --base)/etc/profile.d/conda.sh"
 conda activate minnlo-env
 
 # Generation step
