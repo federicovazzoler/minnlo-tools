@@ -24,7 +24,7 @@ def check_env():
         sys.stderr.write("Source the environment before launching the script 'source <MINNLO_TOOLS_FOLDER>/env.sh'\n")
         sys.exit()
     else:
-        sys.stdout.write("Environment found.")
+        sys.stdout.write("Environment found.\n")
         return MINNLO_TOOLS_PATH, CONDA_PATH
 
 def write_single_stage_job(stage, seed, dagman_folder, gridpack_folder, runtime, MINNLO_TOOLS_PATH, CONDA_PATH):
@@ -38,8 +38,7 @@ def write_single_stage_job(stage, seed, dagman_folder, gridpack_folder, runtime,
     log_path = os.path.join(job_folder, "job.log")
 
     # Script
-    script_file = f"""
-#!/bin/bash
+    script_file = f"""#!/bin/bash
 
 set -e
 
@@ -64,7 +63,7 @@ exit 0
 
     # Submit
     submit_file = f"""
-exectutable     = {script_path}
+executable     = {script_path}
 output          = {output_path}
 error           = {error_path}
 log             = {log_path}
@@ -72,6 +71,7 @@ log             = {log_path}
 on_exit_remove  = (ExitBySignal == False) && (ExitCode == 0)\n
 max_retries     = 3
 requirements    = Machine =!= LastRemoteHost
+queue
 """
     with open(submit_path, "w") as file:
         file.write(submit_file)
@@ -88,8 +88,7 @@ def write_prepare_job(stage, dagman_folder, gridpack_folder):
     log_path = os.path.join(job_folder, "job.log")
 
     # Script
-    script_file = f"""
-#!/bin/bash
+    script_file = f"""#!/bin/bash
 
 set -e
 
@@ -106,13 +105,14 @@ exit 0
 
     # Submit
     submit_file = f"""
-exectutable     = {script_path}
+executable     = {script_path}
 output          = {output_path}
 error           = {error_path}
 log             = {log_path}
 on_exit_remove  = (ExitBySignal == False) && (ExitCode == 0)\n
 max_retries     = 3
 requirements    = Machine =!= LastRemoteHost
+queue
 """
     with open(submit_path, "w") as file:
         file.write(submit_file)
@@ -153,11 +153,27 @@ def create_folder(folder_path, **kwargs):
     os.makedirs(folder_path, exist_ok=kwargs.get('exist_ok', False))
     return folder_path
 
+def get_full_path(relative_path):
+    try:
+        # Get the current working directory
+        current_working_directory = os.getcwd()
+        
+        # Join the current working directory with the relative path
+        full_path = os.path.join(current_working_directory, relative_path)
+        
+        return full_path
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+
 def generate_dagman_area(input_card, output_folder, num_evts, num_jobs, initial_seed, runtime, submit):
     MINNLO_TOOLS_PATH, CONDA_PATH = check_env()
 
     #convert runtime to seconds
     runtime *= 3600
+   
+    # transform output_folder to full path
+    output_folder = get_full_path(output_folder)
    
     # Create the output_folder directory structure
     gridpack_folder = create_folder(os.path.join(output_folder, "gridpack"))
@@ -166,7 +182,7 @@ def generate_dagman_area(input_card, output_folder, num_evts, num_jobs, initial_
     dagman_file = os.path.join(dagman_folder, "dagman.dag")
 
     with open(dagman_file, "w") as df:
-        df.write("# DAGMan file\n\n")
+        df.write("# DAGMan file\n")
 
         stages = [0, 1, 2, 3]
         for stage in stages:
@@ -174,6 +190,7 @@ def generate_dagman_area(input_card, output_folder, num_evts, num_jobs, initial_
 
             job_prepare_path = write_prepare_job(stage=stage, dagman_folder=dagman_folder, gridpack_folder=gridpack_folder)
 
+            df.write(f"\n")
             df.write(f"# Stage {stage}: PREPARE\n")
             df.write(f"JOB prepare_stage_{stage} {job_prepare_path}\n\n")
             
@@ -182,33 +199,35 @@ def generate_dagman_area(input_card, output_folder, num_evts, num_jobs, initial_
                 job_submit_path = write_single_stage_job(stage=stage, seed=seed, dagman_folder=dagman_folder, gridpack_folder=gridpack_folder, runtime=runtime, MINNLO_TOOLS_PATH=MINNLO_TOOLS_PATH, CONDA_PATH=CONDA_PATH)
                 df.write(f"JOB stage_{stage}_seed_{seed} {job_submit_path}\n")                
 
-            child_string = ""
-            for seed in range(initial_seed, initial_seed + num_jobs):
-                child_string += f"stage_{stage}_seed_{seed} " 
-            df.write(f"PARENT prepare_stage_{stage} CHILD {child_string}\n\n")
+#            child_string = ""
+#            for seed in range(initial_seed, initial_seed + num_jobs):
+#                child_string += f"stage_{stage}_seed_{seed} " 
+#            df.write(f"PARENT prepare_stage_{stage} CHILD {child_string}\n\n")
 
         # Write the PARENT CHILD syntax
         df.write("\n")
-        for stage in stages[:-1]:
-            parent_string = ""
-            child_string = ""
+        grid_jobs_for_stage = []
+        for stage in stages:
+            jobs_string = ""
             for seed in range(initial_seed, initial_seed + num_jobs):
-                parent_string += f"stage_{stage}_seed_{seed} "
-                child_string += f"stage_{stage + 1}_seed_{seed} "
-            df.write(f"PARENT {parent_string} CHILD {child_string}\n")
+                jobs_string += f"stage_{stage}_seed_{seed} "
+            grid_jobs_for_stage.append(jobs_string)
 
+        df.write(f"PARENT prepare_stage_0 CHILD {grid_jobs_for_stage[0]}\n")
+        for stage in stages[1:]:
+            df.write(f"PARENT {grid_jobs_for_stage[stage - 1]} CHILD prepare_stage_{stage}\n")
+            df.write(f"PARENT prepare_stage_{stage} CHILD {grid_jobs_for_stage[stage]}\n") 
+
+    if submit:
+        submit_condor_job(dagman_file)
+
+def submit_condor_job(dagman_file):
+  subprocess.run(["condor_submit_dag", dagman_file], check=True) 
+    
 def main():
     args = parser()
 
-    generate_dagman_area(
-        input_card=args.input_card,
-        output_folder=args.output_folder,
-        num_evts=args.num_evts,
-        num_jobs=args.num_jobs,
-        initial_seed=args.initial_seed,
-        runtime=args.runtime,
-        submit=args.submit
-    )
+    generate_dagman_area(input_card=args.input_card, output_folder=args.output_folder, num_evts=args.num_evts, num_jobs=args.num_jobs, initial_seed=args.initial_seed, runtime=args.runtime, submit=args.submit)
 
 if __name__ == "__main__":
     main()
