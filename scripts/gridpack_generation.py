@@ -119,7 +119,7 @@ queue
 
     return submit_path
 
-def prepare_powheg_card(input_card, initial_seed, num_jobs, stage, gridpack_folder):
+def prepare_powheg_card(input_card, initial_seed, num_jobs, stage, num_evts, gridpack_folder):
     with open(input_card, "r") as f:
         contents = f.read()
         contents = re.sub(r".*manyseeds.*", "manyseeds 1", contents)
@@ -140,6 +140,9 @@ def prepare_powheg_card(input_card, initial_seed, num_jobs, stage, gridpack_fold
             sys.stderr.write("Unrecognised stage of generation\n")
             sys.stderr.write("Available stages are: 0, 1, 2, 3\n")
             sys.exit()
+        # patch num events
+        contents = re.sub(r".*numevts.*", f"numevts {num_evts}", contents)
+        
 
     with open(os.path.join(gridpack_folder, f"stage_{stage}-powheg.input"), "w") as f:
         f.write(contents)
@@ -186,7 +189,7 @@ def generate_dagman_area(input_card, output_folder, num_evts, num_jobs, initial_
 
         stages = [0, 1, 2, 3]
         for stage in stages:
-            prepare_powheg_card(input_card=input_card, initial_seed=initial_seed, num_jobs=num_jobs, stage=stage, gridpack_folder=gridpack_folder) 
+            prepare_powheg_card(input_card=input_card, initial_seed=initial_seed, num_jobs=num_jobs, stage=stage, num_evts=num_evts, gridpack_folder=gridpack_folder) 
 
             job_prepare_path = write_prepare_job(stage=stage, dagman_folder=dagman_folder, gridpack_folder=gridpack_folder)
 
