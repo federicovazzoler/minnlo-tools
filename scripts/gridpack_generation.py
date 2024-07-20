@@ -32,11 +32,11 @@ def write_single_stage_job(stage, seed, dagman_folder, gridpack_folder, runtime,
     job_folder = os.path.join(dagman_folder, f"stage_{stage}", f"seed_{seed}")
     os.makedirs(job_folder, exist_ok=False)
 
-    script_path = os.path.join(job_folder, "job.sh")
-    submit_path = os.path.join(job_folder, "job.sub") 
-    output_path = os.path.join(job_folder, "job.out")
-    error_path = os.path.join(job_folder, "job.err")
-    log_path = os.path.join(job_folder, "job.log")
+    script_path = os.path.join(job_folder, f"job_stage_{stage}_seed_{seed}.sh")
+    submit_path = os.path.join(job_folder, f"job_stage_{stage}_seed_{seed}.sub") 
+    output_path = os.path.join(job_folder, f"job_stage_{stage}_seed_{seed}.out")
+    error_path  = os.path.join(job_folder, f"job_stage_{stage}_seed_{seed}.err")
+    log_path    = os.path.join(job_folder, f"job_stage_{stage}_seed_{seed}.log")
 
     # Script
     script_file = f"""#!/bin/bash
@@ -64,7 +64,7 @@ exit 0
 
     # Submit
     submit_file = f"""
-executable     = {script_path}
+executable      = {script_path}
 output          = {output_path}
 error           = {error_path}
 log             = {log_path}
@@ -83,11 +83,11 @@ queue
 def write_prepare_job(stage, dagman_folder, gridpack_folder):
     job_folder = create_folder(os.path.join(dagman_folder, f"stage_{stage}"))
 
-    script_path = os.path.join(job_folder, "copy.sh")
-    submit_path = os.path.join(job_folder, "job.sub") 
-    output_path = os.path.join(job_folder, "job.out")
-    error_path = os.path.join(job_folder, "job.err")
-    log_path = os.path.join(job_folder, "job.log")
+    script_path = os.path.join(job_folder, f"copy_stage_{stage}.sh")
+    submit_path = os.path.join(job_folder, f"copy_stage_{stage}.sub") 
+    output_path = os.path.join(job_folder, f"copy_stage_{stage}.out")
+    error_path  = os.path.join(job_folder, f"copy_stage_{stage}.err")
+    log_path    = os.path.join(job_folder, f"copy_stage_{stage}.log")
 
     # Script
     script_file = f"""#!/bin/bash
@@ -155,6 +155,45 @@ def prepare_powheg_card(input_card, initial_seed, num_jobs, stage, num_evts, gri
         for i in range(initial_seed, initial_seed + num_jobs):
             f.write(f"{i}\n")
 
+def write_finalise_job(dagman_folder, output_folder):
+    script_path = os.path.join(dagman_folder, "compress.sh")
+    submit_path = os.path.join(dagman_folder, "compress.sub") 
+    output_path = os.path.join(dagman_folder, "compress.out")
+    error_path  = os.path.join(dagman_folder, "compress.err")
+    log_path    = os.path.join(dagman_folder, "compress.log")
+
+    # Script
+    script_file = f"""#!/bin/bash
+
+set -e
+
+pushd {output_folder}
+tar -czf gridpack.tar.gz gridpack
+popd
+
+exit 0
+"""
+    with open(script_path, "w") as file:
+        file.write(script_file)
+    os.chmod(script_path, 0o755)
+
+    # Submit
+    submit_file = f"""
+executable      = {script_path}
+output          = {output_path}
+error           = {error_path}
+log             = {log_path}
+on_exit_remove  = (ExitBySignal == False) && (ExitCode == 0)\n
+max_retries     = 3
+requirements    = Machine =!= LastRemoteHost
++OpSysAndVer = "RedHat9"
+queue
+"""
+    with open(submit_path, "w") as file:
+        file.write(submit_file)
+
+    return submit_path
+
 def create_folder(folder_path, **kwargs):
     os.makedirs(folder_path, exist_ok=kwargs.get('exist_ok', False))
     return folder_path
@@ -205,10 +244,10 @@ def generate_dagman_area(input_card, output_folder, num_evts, num_jobs, initial_
                 job_submit_path = write_single_stage_job(stage=stage, seed=seed, dagman_folder=dagman_folder, gridpack_folder=gridpack_folder, runtime=runtime, MINNLO_TOOLS_PATH=MINNLO_TOOLS_PATH, CONDA_PATH=CONDA_PATH, LHAPDF_DATA_PATH=LHAPDF_DATA_PATH)
                 df.write(f"JOB stage_{stage}_seed_{seed} {job_submit_path}\n")                
 
-#            child_string = ""
-#            for seed in range(initial_seed, initial_seed + num_jobs):
-#                child_string += f"stage_{stage}_seed_{seed} " 
-#            df.write(f"PARENT prepare_stage_{stage} CHILD {child_string}\n\n")
+        finalise_job_path = write_finalise_job(dagman_folder=dagman_folder, output_folder=output_folder)
+        df.write("\n")
+        df.write(f"# Finalise job\n")
+        df.write(f"JOB finalise {finalise_job_path}\n")
 
         # Write the PARENT CHILD syntax
         df.write("\n")
@@ -223,6 +262,7 @@ def generate_dagman_area(input_card, output_folder, num_evts, num_jobs, initial_
         for stage in stages[1:]:
             df.write(f"PARENT {grid_jobs_for_stage[stage - 1]} CHILD prepare_stage_{stage}\n")
             df.write(f"PARENT prepare_stage_{stage} CHILD {grid_jobs_for_stage[stage]}\n") 
+        df.write(f"PARENT {grid_jobs_for_stage[-1]} CHILD finalise\n")
 
     if submit:
         submit_condor_job(dagman_file)
