@@ -72,6 +72,7 @@ log             = {log_path}
 on_exit_remove  = (ExitBySignal == False) && (ExitCode == 0)\n
 max_retries     = 3
 requirements    = Machine =!= LastRemoteHost
++OpSysAndVer = "RedHat9"
 queue
 """
     with open(submit_path, "w") as file:
@@ -113,6 +114,7 @@ log             = {log_path}
 on_exit_remove  = (ExitBySignal == False) && (ExitCode == 0)\n
 max_retries     = 3
 requirements    = Machine =!= LastRemoteHost
++OpSysAndVer = "RedHat9"
 queue
 """
     with open(submit_path, "w") as file:
@@ -225,8 +227,31 @@ def generate_dagman_area(input_card, output_folder, num_evts, num_jobs, initial_
     if submit:
         submit_condor_job(dagman_file)
 
+    # Define the strings to be printed
+    str1 = "output folder: " + str(output_folder)
+    str2 = "dagman folder: " + str(dagman_folder)
+    str3 = "dagman file  : " + str(dagman_file)
+    
+    # Compute the length of each string
+    len1 = len(str1)
+    len2 = len(str2)
+    len3 = len(str3)
+    
+    # Determine the maximum length
+    max_length = max(len1, len2, len3)
+    
+    # Print a line of asterisks of the maximum length
+    print('*' * max_length)
+    
+    # Print the strings
+    print(str1)
+    print(str2)
+    print(str3)
+
+    print('*' * max_length)
+
 def submit_condor_job(dagman_file):
-  subprocess.run(["condor_submit_dag", dagman_file], check=True) 
+    subprocess.run(["condor_submit_dag", dagman_file], check=True) 
     
 def main():
     args = parser()
