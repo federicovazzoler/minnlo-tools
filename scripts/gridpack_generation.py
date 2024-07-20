@@ -20,14 +20,15 @@ def parser():
 def check_env():
     MINNLO_TOOLS_PATH = os.environ.get("MINNLO_TOOLS_PATH")
     CONDA_PATH = os.environ.get("CONDA_PATH")
-    if (not MINNLO_TOOLS_PATH) or (not CONDA_PATH):
+    LHAPDF_DATA_PATH = os.environ.get("LHAPDF_DATA_PATH")
+    if (not MINNLO_TOOLS_PATH) or (not CONDA_PATH) or (not LHAPDF_DATA_PATH):
         sys.stderr.write("Source the environment before launching the script 'source <MINNLO_TOOLS_FOLDER>/env.sh'\n")
         sys.exit()
     else:
         sys.stdout.write("Environment found.\n")
-        return MINNLO_TOOLS_PATH, CONDA_PATH
+        return MINNLO_TOOLS_PATH, CONDA_PATH, LHAPDF_DATA_PATH
 
-def write_single_stage_job(stage, seed, dagman_folder, gridpack_folder, runtime, MINNLO_TOOLS_PATH, CONDA_PATH):
+def write_single_stage_job(stage, seed, dagman_folder, gridpack_folder, runtime, MINNLO_TOOLS_PATH, CONDA_PATH, LHAPDF_DATA_PATH):
     job_folder = os.path.join(dagman_folder, f"stage_{stage}", f"seed_{seed}")
     os.makedirs(job_folder, exist_ok=False)
 
@@ -45,6 +46,7 @@ set -e
 # Activate the conda environment
 source "$({CONDA_PATH} info --base)/etc/profile.d/conda.sh"
 conda activate minnlo-env
+export LHAPDF_DATA_PATH="{LHAPDF_DATA_PATH}"
 
 # Generation step
 pushd {gridpack_folder}
@@ -104,7 +106,7 @@ exit 0
 
     # Submit
     submit_file = f"""
-executable     = {script_path}
+executable      = {script_path}
 output          = {output_path}
 error           = {error_path}
 log             = {log_path}
@@ -169,7 +171,7 @@ def get_full_path(relative_path):
         sys.exit(1)
 
 def generate_dagman_area(input_card, output_folder, num_evts, num_jobs, initial_seed, runtime, submit):
-    MINNLO_TOOLS_PATH, CONDA_PATH = check_env()
+    MINNLO_TOOLS_PATH, CONDA_PATH, LHAPDF_DATA_PATH = check_env()
 
     #convert runtime to seconds
     runtime *= 3600
@@ -198,7 +200,7 @@ def generate_dagman_area(input_card, output_folder, num_evts, num_jobs, initial_
             
             df.write(f"# Stage {stage}: JOBS\n")
             for seed in range(initial_seed, initial_seed + num_jobs):
-                job_submit_path = write_single_stage_job(stage=stage, seed=seed, dagman_folder=dagman_folder, gridpack_folder=gridpack_folder, runtime=runtime, MINNLO_TOOLS_PATH=MINNLO_TOOLS_PATH, CONDA_PATH=CONDA_PATH)
+                job_submit_path = write_single_stage_job(stage=stage, seed=seed, dagman_folder=dagman_folder, gridpack_folder=gridpack_folder, runtime=runtime, MINNLO_TOOLS_PATH=MINNLO_TOOLS_PATH, CONDA_PATH=CONDA_PATH, LHAPDF_DATA_PATH=LHAPDF_DATA_PATH)
                 df.write(f"JOB stage_{stage}_seed_{seed} {job_submit_path}\n")                
 
 #            child_string = ""
