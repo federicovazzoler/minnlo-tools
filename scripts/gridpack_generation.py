@@ -43,18 +43,31 @@ def write_single_stage_job(stage, seed, dagman_folder, gridpack_folder, runtime,
 
 set -e
 
-# Activate the conda environment
-source "$({CONDA_PATH} info --base)/etc/profile.d/conda.sh"
-conda activate minnlo-env
+# Create a temporary directory
+TEMP_DIR=$(mktemp -d)
+
+# Unpack the Conda environment tarball in the temporary directory
+echo "Unpacking env"
+tar -xzf {MINNLO_TOOLS_PATH}/minnlo-env-minimal.tar.gz -C $TEMP_DIR
+
+# Activate the Conda environment
+echo "Sourcing env"
+source $TEMP_DIR/bin/activate
+
 export LHAPDF_DATA_PATH="{LHAPDF_DATA_PATH}"
 
 # Generation step
+echo "Running POWHEG"
 pushd {gridpack_folder}
 time {MINNLO_TOOLS_PATH}/POWHEG-BOX-V2/Zj/ZjMiNNLO/pwhg_main<<EOF
 {seed}
 EOF
 
 popd
+
+# Clean up the environment
+echo "Cleaning up env"
+rm -rf $TEMP_DIR
 
 exit 0
 """
@@ -70,7 +83,7 @@ error           = {error_path}
 log             = {log_path}
 +RequestRuntime = {runtime}
 on_exit_remove  = (ExitBySignal == False) && (ExitCode == 0)\n
-max_retries     = 20
+max_retries     = 3
 requirements    = Machine =!= LastRemoteHost
 +OpSysAndVer = "RedHat9"
 queue
@@ -112,7 +125,7 @@ output          = {output_path}
 error           = {error_path}
 log             = {log_path}
 on_exit_remove  = (ExitBySignal == False) && (ExitCode == 0)\n
-max_retries     = 20
+max_retries     = 3 
 requirements    = Machine =!= LastRemoteHost
 +OpSysAndVer = "RedHat9"
 queue
@@ -184,7 +197,7 @@ output          = {output_path}
 error           = {error_path}
 log             = {log_path}
 on_exit_remove  = (ExitBySignal == False) && (ExitCode == 0)\n
-max_retries     = 20
+max_retries     = 3 
 requirements    = Machine =!= LastRemoteHost
 +OpSysAndVer = "RedHat9"
 queue
