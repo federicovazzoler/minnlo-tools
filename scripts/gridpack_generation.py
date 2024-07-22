@@ -70,7 +70,7 @@ error           = {error_path}
 log             = {log_path}
 +RequestRuntime = {runtime}
 on_exit_remove  = (ExitBySignal == False) && (ExitCode == 0)\n
-max_retries     = 3
+max_retries     = 20
 requirements    = Machine =!= LastRemoteHost
 +OpSysAndVer = "RedHat9"
 queue
@@ -112,7 +112,7 @@ output          = {output_path}
 error           = {error_path}
 log             = {log_path}
 on_exit_remove  = (ExitBySignal == False) && (ExitCode == 0)\n
-max_retries     = 3
+max_retries     = 20
 requirements    = Machine =!= LastRemoteHost
 +OpSysAndVer = "RedHat9"
 queue
@@ -184,7 +184,7 @@ output          = {output_path}
 error           = {error_path}
 log             = {log_path}
 on_exit_remove  = (ExitBySignal == False) && (ExitCode == 0)\n
-max_retries     = 3
+max_retries     = 20
 requirements    = Machine =!= LastRemoteHost
 +OpSysAndVer = "RedHat9"
 queue
