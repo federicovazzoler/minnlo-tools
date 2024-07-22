@@ -3,3 +3,5 @@ test/
 pilot*/
 .vscode/
 gridpacks/
+*tar.gz
+playground/

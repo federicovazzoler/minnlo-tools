@@ -1,0 +1,12 @@
+name: minnlo-env-minimal
+
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.12
+  - cxx-compiler 
+  - cmake
+  - fortran-compiler 
+  - lhapdf
