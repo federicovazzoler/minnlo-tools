@@ -7,6 +7,7 @@ environment() {
 }
 
 main() {
+    environment
     pushd ${MINNLO_TOOLS_PATH}
     svn checkout --username anonymous --password anonymous svn://powhegbox.mib.infn.it/trunk/POWHEG-BOX-V2
     pushd POWHEG-BOX-V2
