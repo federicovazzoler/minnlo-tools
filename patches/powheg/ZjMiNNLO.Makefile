@@ -248,7 +248,7 @@ HOPPET= hplog.o xpij2e.o xpns2e.o assertions.o coefficient_functions.o \
 	warnings_and_errors.o welcome_message.o xa2hgp.o xpij2n.o xpij2p.o \
 	xpns2n.o xpns2p.o
 
-USER=init_couplings.o init_processes.o Born_phsp.o Born.o virtual.o \
+USER=init_couplings_cms.o init_processes.o Born_phsp.o Born.o virtual.o \
         real.o InverseISRMapping.o ProjKinematics.o $(PWHGANAL) \
         brphasespace.o sigd3term.o $(NNLOPS_PLUGINS) $(HOPPET)
 # notice that last file is needed for Zj_distribute option
