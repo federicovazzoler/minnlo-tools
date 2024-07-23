@@ -1,7 +1,4 @@
 POWHEG-BOX-V2/
-test/
-pilot*/
 .vscode/
-gridpacks/
 *tar.gz
-playground/
+production/
