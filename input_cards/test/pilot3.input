@@ -1,0 +1,234 @@
+#------------------------------------------------
+#   INCOMING BEAMS PARAMETER
+#------------------------------------------------
+ih1                 1    ! hadron 1 (1 for protons, -1 for antiprotons)
+ih2                 1    ! hadron 2 (1 for protons, -1 for antiprotons)
+ebeam1         6500d0    ! energy of beam 1
+ebeam2         6500d0    ! energy of beam 2
+
+#------------------------------------------------
+#   PDF & ALPHAS SETTINGS
+#------------------------------------------------
+#   To be set only if using LHA pdfs
+#
+lhans1         303600    ! pdf set for hadron 1 (LHA numbering)
+lhans2         303600    ! pdf set for hadron 2 (LHA numbering)
+
+#   ALPHAS AND PDF EVOLUTION
+alphas_from_pdf     1    ! (default 0) if 1, uses alphas from PDF evolution tool (e.g. lhapdf or hoppet)
+                         ! This is required for running MiNNLO!
+
+
+#------------------------------------------------
+#   RENORMALIZATION/FACTORIZATION SCALE SETTINGS
+#------------------------------------------------
+# For MiN(N)LO these scale settings are relevant only to set the scales of the overall two powers of alphas.
+# The values of the other scales in that case are set according to the MiNNLO procedure (and according to largeptscales).
+#
+# (Note that for NLO+PS ttJ runs these scale settings set the values of all scales.)
+#
+fixedscale          0    ! (default 1), if 0 use dynamical scale for overall two powers of alphas (set by whichscale),
+#                        !              if 1 scale for overall two powers of alphas is fixed to the top-quark mass
+whichscale          4    ! (default 0), dynamical scale of overall two powers of alphas, only used if fixedscale=0
+#                        !              0 - H_T^tt/2      (sum of transverse masses of the top quarks over 2)
+#                        !              1 - m_tt/2        (invariant mass over 2)
+#                        !              2 - m_tt          (invariant mass)
+#                        !              3 - H_T^tt+jets/2 (sum of transverse masses of all final states over 2)
+#                        !              4 - H_T^tt/4      (sum of transverse masses of the top quarks over 4)
+#                        !              5 - H_T^tt+jets/4 (sum of transverse masses of all final states over 4)
+
+#
+# This is used only for MiN(N)LO to set the scale at large pT (i.e. in the fixed-order part)
+#
+largeptscales       0    ! (default 0) dynamical scale used at large pT in fixed-order part
+#                        !             0 - m_tt   (invariant mass of top-quark pair)
+#                        !             1 - pT_tt  (transverse momentum of top-quark pair)
+#                        !             2 - H_T^tt (sum of transverse masses of the top quarks)
+
+
+#------------------------------------------------
+#   MiNLO'/MiNNLO_PS SETTINGS
+#------------------------------------------------
+minlo               1    ! (default 1) if 1, activate MiNLO'
+minnlo              1    ! (default 0) if 1, activate MiNNLO_PS
+modlog_p         -1d0    ! (default -1d0; only works when minlo and/or minnlo is set to 1)
+#                        ! if >0d0, activate modified logs and set the exponent
+#                        ! if -1d0, activate piecewise modified log version 1 
+#                        ! if -2d0, activate piecewise modified log version 2
+#                        ! piecewise modified log: log(Q/pT) for pT<Q/2
+#                        !                         zero for pT>Q
+#                        !                         smoothly interpolated inbetween
+#                        ! if 0d0, -log(Q/pT) * theta(Q-pT)  (not recommended)
+kappaQ          0.5d0    ! (default 1.) factor of scale Q inside the (modified) logarithm:
+#                        !              Q = Qref * kappaQ (Qref=invariant mass of the system)
+#                        !  Set =< 0.5d0 for ttbar !
+Q0                2d0    ! (default 2.) cutoff of profiled scales
+
+
+#------------------------------------------------
+#   SCALE VARIATION & REWEIGHTING
+#------------------------------------------------
+renscfact         1d0    ! (default 1d0) ren scale factor: muren  = muref * renscfact
+facscfact         1d0    ! (default 1d0) fac scale factor: mufact = muref * facscfact
+storeinfo_rwgt      1    ! store info to allow for reweighting
+flg_debug           1    ! store extra event info for debugging
+
+rwl_file '-'
+
+
+lhrwgt_id 'st4'
+lhrwgt_descr 'st4 NNLOPS'
+
+<initrwgt>
+<weightgroup name='First-Weights' combine=' ' >
+<weight id='11H' > renscfact=1.0 facscfact=1.0 kappaQ=0.5 kill_D3=0 </weight>
+<weight id='12H' > renscfact=1.0 facscfact=2.0 kappaQ=0.5 kill_D3=0 </weight>
+<weight id='21H' > renscfact=2.0 facscfact=1.0 kappaQ=0.5 kill_D3=0 </weight>
+<weight id='22H' > renscfact=2.0 facscfact=2.0 kappaQ=0.5 kill_D3=0 </weight>
+<weight id='1HH' > renscfact=1.0 facscfact=0.5 kappaQ=0.5 kill_D3=0 </weight>
+<weight id='H1H' > renscfact=0.5 facscfact=1.0 kappaQ=0.5 kill_D3=0 </weight>
+<weight id='HHH' > renscfact=0.5 facscfact=0.5 kappaQ=0.5 kill_D3=0 </weight>
+</weightgroup>
+</initrwgt>
+
+
+
+#------------------------------------------------
+#   PROCESS PARAMETERS
+#------------------------------------------------
+topmass       172.5d0     ! value of top-quark mass
+topwidth       1.35d0     ! value of top-quark width (non-zero value for topdecaymode/=0, even for zerowidth=1)
+
+# for the EW couplings/parameters (entering only in the decay matrix elements) the (real) Gmu scheme is used
+gfermi     1.16637d-5     ! Fermi constant used as input for Gmu scheme
+Wmass        80.399d0     ! W-boson mass (input for Gmu scheme and relevant for top decays)
+Wwidth       2.0854d0     ! W-boson width (input for Gmu scheme and relevant for top decays)
+Zmass       91.1876d0     ! Z-boson mass (input for Gmu scheme)
+Zwidth       2.4952d0     ! Z-boson width (input for Gmu scheme)
+
+# the top-quark decays are included at tree-level with spin correlations using the following setting
+topdecaymode        0     ! decay mode of the top quarks
+#                         ! 0: stable top quarks (no decay)
+#                         ! set maximum number of particles from top decays e,mu,tau,u,c; for instance:
+#                         ! 22222: all top decays allowed (including tau)
+#                         ! 22022: all top massless decays allowed (no tau)
+#                         ! 22000: fully leptonic massless (no tau)
+#                         ! 22200: fully leptonic (with tau)
+#                         ! 00022: hadronic (with tau)
+#                         ! note: only settings allowed that sum up to at least 2 (unless 0 for stable tops)
+semileptonic        1     ! if 1 keep only semi-leptonic top decays, ie. one to leptons and one to hadrons
+zerowidth           1     ! if 0 include off-shell effects for top quarks (and W bosons) approximately
+#                         ! if 1 keep top quarks (and W bosons) in the decay matrix elements on-shell
+
+# all leptons and light quarks are treated as massless at the level of the matrix elements; however, at the
+# level of the event generation the momenta of the charged leptons, charm and bottom quarks are reshuffled
+# to their masses specified below (the given values are the default values used by the code)
+lhfm/emass   0.511d-3     ! (default 0.511d-3) electron mass for reshuffling momentum in event generation
+lhfm/mumass  0.1056d0     ! (default 0.1056d0) muon mass for reshuffling momentum in event generation
+lhfm/taumass  1.777d0     ! (default 1.777d0) tau mass for reshuffling momentum in event generation
+lhfm/cmass     1.40d0     ! (default 1.40d0) charm-quark mass for reshuffling momentum in event generation
+lhfm/bmass     4.92d0     ! (default 4.92d0) bottom-quark mass for reshuffling momentum in event generation
+
+# Openloops settings
+use_OLP_Interface   1     ! (default 1) use OpenLoops interface (don't turn this off when using OpenLoops!)
+
+
+#------------------------------------------------
+#   Generation cuts
+#------------------------------------------------
+bornktmin       0.6d0    ! Generation cut; minimmum kt in underlying born
+
+
+#------------------------------------------------
+#   POWHEG PARAMETERS: Monte Carlo Integration 
+#------------------------------------------------
+#   Parameters to allow or not the use of stored data
+use-old-grid        1     ! if 1 use old grid if file pwggrids.dat is present (<> 1 regenerate)
+
+#   General MC integration settings
+ncall1          50000     ! number of calls for initializing the integration grid
+itmx1               1     ! number of iterations for initializing the integration grid
+ncall2         100000     ! number of calls for computing the integral and finding upper bound
+itmx2               1     ! number of iterations for computing the integral and finding upper bound
+
+#   Folding used in the integration of the real contributions
+foldcsi             1     ! number of folds on csi integration
+foldy               1     ! number of folds on  y  integration
+foldphi             1     ! number of folds on phi integration
+testplots           0     ! (default 0, do not) do NLO and PWHG distributions
+
+
+#------------------------------------------------
+#   POWHEG PARAMETERS: Upper bound evaluation
+#------------------------------------------------
+use-old-ubound      1    ! if 1 use norm of upper bounding function stored in pwgubound.dat, if present; <> 1 regenerate
+nubound         10000    ! number of bbarra calls to setup norm of upper bounding function
+xupbound          2d0    ! increase upper bound for radiation generation
+icsimax             3    ! <= 100, number of csi subdivision when computing the upper bounds
+iymax               3    ! <= 100, number of y subdivision when computing the upper bounds
+storemintupb        0    ! (default 0) if 1 improve upper bounding computation
+ubexcess_correct    1    ! corrects for error in upper bound estimate
+
+
+#------------------------------------------------
+#   POWHEG PARAMETERS: Event generation
+#------------------------------------------------
+numevts         10000    ! number of events to be generated
+
+#   To correct for UB violations detected during stage 4
+#   (see file POWHEG-BOX-V2/Docs/BoundViolationFixes.pdf)
+#
+#   in essence, before analysing the .lhe files/running Pythia, run:
+#
+#   POWHEG-BOX-RES/Scripts/FindReweightFromCounters.py pwgcounters-st4-*.dat
+#
+#   uncomment lines below, and set corr_btilde and corr_remnant to the provided values
+#
+#btildeviol         1     ! if 1, turn on correction of UB violations
+#corr_btilde      XXX     ! correction factor for btilde
+#corr_remnant     XXX     ! correction factor for remnant
+
+
+#------------------------------------------------
+#   PARTON SHOWER PARAMETERS
+#------------------------------------------------
+#   Settings for shower with pythia8
+py8tune            14    ! (default 21 -> A14 tune) tune for pythia8 (14 -> Monash2013 tune)
+nohad               1    ! (default 1) if 1 switch off hadronization
+nompi               1    ! (default 1) if 1 switch off multi-parton interactions (should only be 0, if also nohad 0)
+noqed               1    ! (default 1) if 1 switch off QED shower effects
+
+
+#------------------------------------------------
+#   Soft/Collinear limit TESTS
+#------------------------------------------------
+#    Check soft/coll limits -> Just for debugging
+colltest            0    ! (default 1), if 0 turn off collinear test
+softtest            0    ! (default 1), if 0 turn off collinear test
+
+
+#------------------------------------------------
+#   OPTIMIZATION OPTIONS
+#------------------------------------------------
+smartsig            1    ! (default 1)
+fastbtlbound        0    ! (default 0), if 1 speed up computation of upper bound of btilde
+
+
+#------------------------------------------------
+#   OPTIONS TO CATCH INSTABILITIES
+#------------------------------------------------
+check_bad_st1       1    ! (default 0), if 1 takes care of removing bad grids during stage 1
+check_bad_st2       1    ! (default 0), if 1 takes care of removing bad grids during stage 2
+
+
+#------------------------------------------------
+#   PARALLEL RUNS
+#------------------------------------------------
+#   The following is for parallel runs (see manual in Z2jet/Docs/)
+manyseeds           1
+parallelstage       4
+xgriditeration      2
+maxseeds        10000
+
+
+compress_lhe 1
