@@ -12,6 +12,7 @@ def parser():
     parser.add_argument("-j", "--num_jobs", type=int, default=1000, help="Number of jobs")
     parser.add_argument("-i", "--initial_seed", type=int, default=1, help="Initial seed for the job submission")
     parser.add_argument("-r", "--runtime", type=int, default=1, help="Max. runtime for each job")
+    parser.add_argument("--stages", type=int, nargs='+', default=[0,1,2,3], help="Customise the stages of the POWHEG generation")
     parser.add_argument("-s", "--submit", action="store_true", help="Submit the workflow")
     args = parser.parse_args()
 
@@ -224,7 +225,7 @@ def get_full_path(relative_path):
         print(f"Error: {e}")
         sys.exit(1)
 
-def generate_dagman_area(input_card, output_folder, num_evts, num_jobs, initial_seed, runtime, submit):
+def generate_dagman_area(input_card, output_folder, num_evts, num_jobs, initial_seed, runtime, stages, submit):
     MINNLO_TOOLS_PATH, CONDA_PATH, LHAPDF_DATA_PATH = check_env()
 
     #convert runtime to seconds
@@ -242,7 +243,6 @@ def generate_dagman_area(input_card, output_folder, num_evts, num_jobs, initial_
     with open(dagman_file, "w") as df:
         df.write("# DAGMan file\n")
 
-        stages = [0, 1, 2, 3]
         for stage in stages:
             prepare_powheg_card(input_card=input_card, initial_seed=initial_seed, num_jobs=num_jobs, stage=stage, num_evts=num_evts, gridpack_folder=gridpack_folder) 
 
@@ -309,7 +309,7 @@ def submit_condor_job(dagman_file):
 def main():
     args = parser()
 
-    generate_dagman_area(input_card=args.input_card, output_folder=args.output_folder, num_evts=args.num_evts, num_jobs=args.num_jobs, initial_seed=args.initial_seed, runtime=args.runtime, submit=args.submit)
+    generate_dagman_area(input_card=args.input_card, output_folder=args.output_folder, num_evts=args.num_evts, num_jobs=args.num_jobs, initial_seed=args.initial_seed, runtime=args.runtime, stages=args.stages, submit=args.submit)
 
 if __name__ == "__main__":
     main()
