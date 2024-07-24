@@ -265,9 +265,9 @@ void plot_csv(const PlotData& plot, const std::string& out_folder_path, bool ver
         gnuplot_script << "set datafile separator ','\n";
         gnuplot_script << "set key autotitle columnhead\n";
         gnuplot_script << "set title '" << plot_name << "'\n";
-        gnuplot_script << "set xlabel 'bin_mid'\n";
+        gnuplot_script << "set xlabel 'bin center'\n";
         gnuplot_script << "set ylabel 'xsec'\n";
-        gnuplot_script << "plot '" << csv_file << "' using 1:2:3 with yerrorbars title 'xsec' lc rgb 'blue'\n";
+        gnuplot_script << "plot '" << csv_file << "' using 3:4:5 with yerrorbars title 'xsec' lc rgb 'red'\n";
         gnuplot_script.close();
 
 //        if (verbose) std::cout << "Created gnuplot script: " << gnuplot_script_path << std::endl;
