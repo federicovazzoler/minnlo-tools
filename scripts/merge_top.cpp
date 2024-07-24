@@ -238,9 +238,57 @@ void dump_csv(const PlotData& plot, const std::string& out_folder_path, bool ver
   }
 }
 
+void plot_csv(const PlotData& plot, const std::string& out_folder_path, bool verbose) {
+  std::string plot_name;
+  size_t start_pos = plot.header_row.find("# ") + 2;
+  size_t end_pos = plot.header_row.find(" index");
+
+  if (start_pos != std::string::npos && end_pos != std::string::npos) {
+    plot_name = plot.header_row.substr(start_pos, end_pos - start_pos);
+  }
+
+  if (plot_name.empty()) {
+    std::cerr << "Unable to find plot name for " << plot.header_row << std::endl;
+    exit(1);
+  }
+
+  std::string csv_file = out_folder_path + "/" + plot_name + ".csv";
+  std::string plot_file = out_folder_path + "/" + plot_name + ".png";
+
+  // Create gnuplot script
+  std::ofstream gnuplot_script(out_folder_path + "/plot_" + plot_name + ".gp");
+  if (gnuplot_script.is_open()) {
+    gnuplot_script << "set terminal pngcairo size 800,600 enhanced font 'Verdana,10'\n";
+    gnuplot_script << "set output '" << plot_file << "'\n";
+    gnuplot_script << "set datafile separator ','\n";
+    gnuplot_script << "set key autotitle columnhead\n";
+    gnuplot_script << "set title '" << plot_name << "'\n";
+    gnuplot_script << "set xlabel 'bin_min'\n";
+    gnuplot_script << "set ylabel 'xsec'\n";
+    gnuplot_script << "plot '" << csv_file << "' using 1:3 with linespoints title 'xsec' lc rgb 'blue', \\\n";
+    gnuplot_script << "     '' using 1:4 with yerrorbars title 'err' lc rgb 'red'\n";
+    gnuplot_script.close();
+
+    if (verbose) std::cout << "Created gnuplot script: " << out_folder_path + "/plot_" + plot_name + ".gp" << std::endl;
+
+    // Run gnuplot script
+    std::string command = "gnuplot " + out_folder_path + "/plot_" + plot_name + ".gp";
+    if (system(command.c_str()) != 0) {
+      std::cerr << "Error running gnuplot script: " << out_folder_path + "/plot_" + plot_name + ".gp" << std::endl;
+      exit(1);
+    } else {
+      if (verbose) std::cout << "Generated plot: " << plot_file << std::endl;
+    }
+  } else {
+    std::cerr << "Error creating gnuplot script: " << out_folder_path + "/plot_" + plot_name + ".gp" << std::endl;
+    exit(1);
+  }
+}
+
 void dump_all_plots_to_csv(std::vector<PlotData> plots, const std::string& out_folder_path, bool verbose) {
   for (const auto& plot : plots) {
     dump_csv(plot, out_folder_path, verbose);
+    plot_csv(plot, out_folder_path, verbose);
   }
 }
 
