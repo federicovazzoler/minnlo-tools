@@ -2,3 +2,7 @@ POWHEG-BOX-V2/
 .vscode/
 *tar.gz
 production/
+scripts/benchmark_merge_top
+scripts/merge_lhe.cpp
+scripts/install-zlib.sh
+scripts/merge_top

@@ -93,32 +93,41 @@ main() {
     PROCS=${PROCS}" ${MINNLO_TOOLS_PATH}/POWHEG-BOX-V2/Zj/ZjMiNNLO"
 
     for PROC in ${PROCS}; do
-      pushd ${PROC}
+        pushd ${PROC}
 
-      if [ ${CLEAN} ]; then
-        make clean
-      fi
+        if [ ${CLEAN} ]; then
+          make clean
+        fi
 
-      cp -v ${ANALYSIS} pwhg_analysis-custom.f
+        cp -v ${ANALYSIS} pwhg_analysis-custom.f
 
-      # compile main executable and lhef_analysis
-      MAKE_OPTS=""
-      if [ "$(uname)" == "Linux" ]; then MAKE_OPTS=-j$(nproc); fi
-      if make ${MAKE_OPTS} pwhg_main; then
-        print_success "pwhg_main compilation successful."
-      else
-        print_error "pwhg_main compilation failed."
-        exit 1
-      fi
+        # compile main executable and lhef_analysis
+        MAKE_OPTS=""
+        if [ "$(uname)" == "Linux" ]; then MAKE_OPTS=-j$(nproc); fi
+        if make ${MAKE_OPTS} pwhg_main; then
+          print_success "pwhg_main compilation successful."
+        else
+          print_error "pwhg_main compilation failed."
+          exit 1
+        fi
 
-      if make ${MAKE_OPTS} lhef_analysis; then
-        print_success "lhef_analysis compilation successful."
-      else
-        print_error "lhef_analysis compilation failed."
-        exit 1
-      fi
+        if make ${MAKE_OPTS} lhef_analysis; then
+          print_success "lhef_analysis compilation successful."
+        else
+          print_error "lhef_analysis compilation failed."
+          exit 1
+        fi
 
-      popd
+        popd
+
+        echo "compiling merge_top.cpp"
+        pushd ${MINNLO_TOOLS_PATH}/scripts
+        g++ -o merge_top merge_top.cpp # -I$CONDA_PREFIX/include -L$CONDA_PREFIX/lib
+        if [ $? -ne 0 ]; then
+            echo "failed to compile merge_top.cpp"
+            exit 1
+        fi
+        pop
     done
 
     exit 0
