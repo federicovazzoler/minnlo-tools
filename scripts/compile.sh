@@ -127,7 +127,7 @@ main() {
             echo "failed to compile merge_top.cpp"
             exit 1
         fi
-        pop
+        popd
     done
 
     exit 0
