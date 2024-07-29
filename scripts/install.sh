@@ -13,7 +13,18 @@ main() {
     pushd POWHEG-BOX-V2
     svn co --username anonymous --password anonymous svn://powhegbox.mib.infn.it/trunk/User-Processes-V2/Zj
     mv Zj/ZjMiNNLO/Makefile Zj/ZjMiNNLO/Makefile.orig 
-    cp ../patches/powheg/ZjMiNNLO.Makefile Zj/ZjMiNNLO/Makefile
+    case "$(uname)" in
+        "Linux")
+            cp ../patches/powheg/ZjMiNNLO.Makefile Zj/ZjMiNNLO/Makefile
+            ;;
+        "Darwin")
+            cp ../patches/powheg/ZjMiNNLO_MAC.Makefile Zj/ZjMiNNLO/Makefile
+            ;;
+        *)
+            echo "unsupported operating system"
+            exit 1
+            ;;
+    esac
     popd
     popd
     exit 0
