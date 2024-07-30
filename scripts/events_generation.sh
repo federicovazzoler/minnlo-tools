@@ -1,56 +1,77 @@
 #!/bin/bash
 
+# Exit immediately if a command exits with a non-zero status
 set -e
 
-# Create a temporary directory
+# Print each command before executing it (useful for debugging)
+#set -x
+
+# Path to the Conda environment tarball and POWHEG main executable
+CONDA_ENV_TARBALL="/nfs/dust/cms/user/vazzolef/minnlo-tools/minnlo-env-minimal.tar.gz"
+POWHEG_MAIN="/nfs/dust/cms/user/vazzolef/minnlo-tools/POWHEG-BOX-V2/Zj/ZjMiNNLO/pwhg_main"
+
+# Arguments passed to the script
+GRIDPACK="${1}"
+OUTFOLDER="${2}"
+NEVTS="${3}"
+SEED="${4}"
+
+# Ensure all arguments are provided
+if [[ -z "${GRIDPACK}" || -z "${OUTFOLDER}" || -z "${NEVTS}" || -z "${SEED}" ]]; then
+    echo "Usage: $0 <gridpack> <outfolder> <nevts> <seed>"
+    exit 1
+fi
+
+# Create a temporary directory and ensure it's cleaned up on exit
 TEMP_DIR=$(mktemp -d)
+#trap 'rm -rf "${TEMP_DIR}"' EXIT
 
 # Unpack the Conda environment tarball in the temporary directory
-echo "Unpacking env"
-tar -xzf /nfs/dust/cms/user/vazzolef/minnlo-tools/minnlo-env-minimal.tar.gz -C $TEMP_DIR
+echo "Unpacking environment..."
+tar -xzf "${CONDA_ENV_TARBALL}" -C "${TEMP_DIR}"
 
 # Activate the Conda environment
-echo "Sourcing env"
-source $TEMP_DIR/bin/activate
+echo "Sourcing environment..."
+source "${TEMP_DIR}/bin/activate"
 
+# Set the LHAPDF data path
 export LHAPDF_DATA_PATH="/cvmfs/sft.cern.ch/lcg/external/lhapdfsets/current/"
 
-echo "Unpacking gridpack"
-tar -xzf /nfs/dust/cms/user/vazzolef/minnlo-tools/production/gridpacks/pilot2/gridpack.tar.gz -C $TEMP_DIR
+# Unpack the gridpack
+echo "Unpacking gridpack..."
+tar -xzf "${GRIDPACK}" -C "${TEMP_DIR}"
 
-# Generation step
-echo "Running POWHEG"
-pushd $TEMP_DIR/gridpack
-sed -i "s;numevts.*;numevts 1000;g" powheg.input
-time /nfs/dust/cms/user/vazzolef/minnlo-tools/POWHEG-BOX-V2/Zj/ZjMiNNLO/pwhg_main<<EOF
-$1
-EOF
+# Change to the directory containing the unpacked gridpack
+echo "Running POWHEG..."
+pushd "${TEMP_DIR}/gridpack"
 
-# Staging output
-# Define the base output folder
-outfolder="/nfs/dust/cms/user/vazzolef/minnlo-tools/production/events/pilot2/"
+# Modify the powheg.input file
+sed -i "s;numevts.*;numevts ${NEVTS};g" powheg.input
+sed -i "s;xgriditeration.*;#xgriditeration.*;g" powheg.input
+sed -i "s;parallelstage.*;#parallelstage.*;g" powheg.input
+sed -i "s;manyseeds.*;#manyseeds.*;g" powheg.input
+sed -i "s;maxseeds.*;#maxseeds.*;g" powheg.input
+echo "iseed ${SEED}" >> powheg.input
 
-# Generate the current date and time in the format YYYYMMDD_HHMM (without seconds)
-#timestamp=$(date +"%d%m%Y_%H%M")
+# Run the POWHEG main executable and log the output
+time "${POWHEG_MAIN}" | tee -a powheg.log
+
+# Create output folder with timestamp and UUID
 timestamp=$(date +"%d_%m_%Y")
-
-# Generate a UUID
 uuid=$(uuidgen)
+output_dir="${OUTFOLDER}/${timestamp}/${uuid}/seed_${SEED}"
+mkdir -p "${output_dir}"
 
-# Create the full path for the new folder with the timestamp and UUID
-newfolder="${outfolder}${timestamp}/${uuid}"
+# Copy relevant output files to the output directory
+echo "Staging output from ${TEMP_DIR} to ${output_dir}"
+cp -p pwgpwhgalone-output*.top "${output_dir}" 
+cp -p pwgevents.lhe            "${output_dir}"
+cp -p powheg.log               "${output_dir}"
+cp -p powheg.input             "${output_dir}"
 
-# Create the new folder
-mkdir -p "$newfolder"
-
-cp -v pwgpwhgalone-output*.top $newfolder 
-cp -v pwgevents-*.lhe $newfolder
-cp -v pwgcounters-st4-*.dat $newfolder
-
+# Return to the previous directory
 popd
 
-# Clean up the environment
-echo "Cleaning up env"
-rm -rf $TEMP_DIR
+echo "Job completed successfully."
 
 exit 0
