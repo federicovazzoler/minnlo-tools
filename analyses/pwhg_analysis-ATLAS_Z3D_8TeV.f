@@ -162,7 +162,7 @@ c         endif
       
       if(weights_num.eq.0.and.rwl_num_weights.eq.0) then
          dsig(1)=dsig0
-         write(*,*) "dsig = ", dsig(1)                                                                                                         
+c         write(*,*) "dsig = ", dsig(1)                                                                                                         
 
       else if(weights_num.ne.0.and.rwl_num_weights.eq.0) then
          dsig(1:weights_num)=weights_val(1:weights_num)
@@ -331,7 +331,7 @@ c      y=0.5*log((pz(4)+pz(3))/(pz(4)-pz(3)))
 cy=0.5d0*log((p(0)+p(3))/(p(0)-p(3)))
 c      y=dabs(y)
 c      y=gety(pz)
-      print*,'y=',y, '   yV=',yV, '   m=', m 
+c      print*,'y=',y, '   yV=',yV, '   m=', m 
       mtv = sqrt(2*ptl1*ptl2*(1d0-cos(delphi)))
 
       cs = cstar(pl1,pl2)
