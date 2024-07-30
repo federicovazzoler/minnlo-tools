@@ -11,7 +11,7 @@ def parser():
     parser.add_argument("-e", "--num_evts", type=int, default=10000, help="Number of events per job")
     parser.add_argument("-j", "--num_jobs", type=int, default=1000, help="Number of jobs")
     parser.add_argument("-i", "--initial_seed", type=int, default=1, help="Initial seed for the job submission")
-    parser.add_argument("-r", "--runtime", type=int, default=1, help="Max. runtime for each job")
+    parser.add_argument("-r", "--runtimes", type=int, nargs='+', default=[1,1,3,1], help="Max. runtime for each stage")
     parser.add_argument("--stages", type=int, nargs='+', default=[0,1,2,3], help="Customise the stages of the POWHEG generation")
     parser.add_argument("-s", "--submit", action="store_true", help="Submit the workflow")
     args = parser.parse_args()
@@ -29,7 +29,7 @@ def check_env():
         sys.stdout.write("Environment found.\n")
         return MINNLO_TOOLS_PATH, CONDA_PATH, LHAPDF_DATA_PATH
 
-def write_single_stage_job(stage, seed, dagman_folder, gridpack_folder, runtime, MINNLO_TOOLS_PATH, CONDA_PATH, LHAPDF_DATA_PATH):
+def write_single_stage_job(stage, seed, dagman_folder, gridpack_folder, runtime, MINNLO_TOOLS_PATH, LHAPDF_DATA_PATH):
     job_folder = os.path.join(dagman_folder, f"stage_{stage}", f"seed_{seed}")
     os.makedirs(job_folder, exist_ok=False)
 
@@ -225,12 +225,13 @@ def get_full_path(relative_path):
         print(f"Error: {e}")
         sys.exit(1)
 
-def generate_dagman_area(input_card, output_folder, num_evts, num_jobs, initial_seed, runtime, stages, submit):
+def generate_dagman_area(input_card, output_folder, num_evts, num_jobs, initial_seed, runtimes, stages, submit):
     MINNLO_TOOLS_PATH, CONDA_PATH, LHAPDF_DATA_PATH = check_env()
 
-    #convert runtime to seconds
-    runtime *= 3600
-   
+    # check runtime has same dimention of stages
+    if len(runtimes) != len(stages):
+        raise Exception(f"You asked for stages: {stages} but giving runtimes: {runtimes}")
+ 
     # transform output_folder to full path
     output_folder = get_full_path(output_folder)
    
@@ -244,6 +245,10 @@ def generate_dagman_area(input_card, output_folder, num_evts, num_jobs, initial_
         df.write("# DAGMan file\n")
 
         for stage in stages:
+            stage_runtime = runtimes[stage] 
+            #convert runtime to seconds
+            stage_runtime *= 3600
+
             prepare_powheg_card(input_card=input_card, initial_seed=initial_seed, num_jobs=num_jobs, stage=stage, num_evts=num_evts, gridpack_folder=gridpack_folder) 
 
             job_prepare_path = write_prepare_job(stage=stage, dagman_folder=dagman_folder, gridpack_folder=gridpack_folder)
@@ -254,7 +259,7 @@ def generate_dagman_area(input_card, output_folder, num_evts, num_jobs, initial_
             
             df.write(f"# Stage {stage}: JOBS\n")
             for seed in range(initial_seed, initial_seed + num_jobs):
-                job_submit_path = write_single_stage_job(stage=stage, seed=seed, dagman_folder=dagman_folder, gridpack_folder=gridpack_folder, runtime=runtime, MINNLO_TOOLS_PATH=MINNLO_TOOLS_PATH, CONDA_PATH=CONDA_PATH, LHAPDF_DATA_PATH=LHAPDF_DATA_PATH)
+                job_submit_path = write_single_stage_job(stage=stage, seed=seed, dagman_folder=dagman_folder, gridpack_folder=gridpack_folder, runtime=stage_runtime, MINNLO_TOOLS_PATH=MINNLO_TOOLS_PATH, LHAPDF_DATA_PATH=LHAPDF_DATA_PATH)
                 df.write(f"JOB stage_{stage}_seed_{seed} {job_submit_path}\n")                
 
         finalise_job_path = write_finalise_job(dagman_folder=dagman_folder, output_folder=output_folder)
@@ -309,7 +314,7 @@ def submit_condor_job(dagman_file):
 def main():
     args = parser()
 
-    generate_dagman_area(input_card=args.input_card, output_folder=args.output_folder, num_evts=args.num_evts, num_jobs=args.num_jobs, initial_seed=args.initial_seed, runtime=args.runtime, stages=args.stages, submit=args.submit)
+    generate_dagman_area(input_card=args.input_card, output_folder=args.output_folder, num_evts=args.num_evts, num_jobs=args.num_jobs, initial_seed=args.initial_seed, runtimes=args.runtimes, stages=args.stages, submit=args.submit)
 
 if __name__ == "__main__":
     main()
