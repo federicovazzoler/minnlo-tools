@@ -3,7 +3,7 @@
       include 'pwhg_math.h'
 
       call inihists
-
+      call bookupeqbins('total',1d0,-0.5d0,0.5d0)
       call bookupeqbins('z3d_CC',1d0,0d0,504d0)
       call bookupeqbins('z3d_mass_CC',1d0,0d0,7d0)
       call bookupeqbins('z3d_CF',1d0,0d0,150d0)
@@ -162,6 +162,8 @@ c         endif
       
       if(weights_num.eq.0.and.rwl_num_weights.eq.0) then
          dsig(1)=dsig0
+         write(*,*) "dsig = ", dsig(1)                                                                                                         
+
       else if(weights_num.ne.0.and.rwl_num_weights.eq.0) then
          dsig(1:weights_num)=weights_val(1:weights_num)
       else if(weights_num.eq.0.and.rwl_num_weights.ne.0) then
@@ -187,8 +189,7 @@ c rwgt stuff END
       pl2= (/0,0,0,0/)
       nphot = 0
 
-      vdecaytemp=lprup(1)-10000 ! Z decay product, with positive id
-
+      vdecaytemp= 13 !lprup(1)-10000 ! Z decay product, with positive id
       nl1=0
       nl2=0
       ngamma= 0
@@ -204,7 +205,7 @@ c rwgt stuff END
 *
       IF(WHCPRG.ne.'PYTHIA') then
          do ihep=1,nhep
-c p_Z = p_l1 + p_l2
+c     p_Z = p_l1 + p_l2
             if(idhep(ihep).eq.-vdecaytemp) then
 C     with a antilepton
                nl2=nl2+1
@@ -265,7 +266,7 @@ c
       ENDIF
 
       if(nl1.eq.0.or.nl2.eq.0) then
-c            write(*,*)" not enough leptons or gamma! drop event"
+            write(*,*)" not enough leptons or gamma! drop event"
 c            call exit(1)
          return
       endif
@@ -330,13 +331,13 @@ c      y=0.5*log((pz(4)+pz(3))/(pz(4)-pz(3)))
 cy=0.5d0*log((p(0)+p(3))/(p(0)-p(3)))
 c      y=dabs(y)
 c      y=gety(pz)
-c      print*,'y=',y, '   yV=',yV
+      print*,'y=',y, '   yV=',yV, '   m=', m 
       mtv = sqrt(2*ptl1*ptl2*(1d0-cos(delphi)))
 
       cs = cstar(pl1,pl2)
 
       phistar = phistar_report(pl2,pl1)   !pl2 is the negatively charged lepton
-
+      call filld('total',0d0,dsig)
 
 
 
